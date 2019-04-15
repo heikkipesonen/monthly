@@ -7,14 +7,14 @@ import { Row, Flex } from './layout';
 
 interface Props {
   onCancel: () => void
-  onAdd: (p: PurchaseGroup) => void
 }
 
-export const AddGroup = ({ onAdd, onCancel }: Props) => {
+export const AddGroup = ({ onCancel }: Props) => {
   const [name, setName] = React.useState('')
-  const handleOk = () => {
-    onAdd(PurchaseGroup.create(name))
+  const handleOk = async () => {
+    await PurchaseGroup.create(name)
     setName('')
+    onCancel()
   }
 
   return (

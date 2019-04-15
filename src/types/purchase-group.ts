@@ -1,5 +1,5 @@
 import * as t from 'io-ts'
-import { generateId4 } from 'src/utils/id';
+import { groups } from 'src/domain/db';
 
 export const PurchaseGroupType = t.interface({
   id: t.string,
@@ -12,8 +12,14 @@ export class PurchaseGroup {
     public readonly name: string
   ) { }
 
-  public static create = (name: string) => new PurchaseGroup(
-    generateId4(),
-    name
-  )
+  public save = () =>
+    groups.doc(this.id).update({
+      name: this.name
+    })
+
+  public static create = async (name: string) => {
+    const g = await groups.add({ name })
+    return new PurchaseGroup(g.id, name)
+  }
+
 }

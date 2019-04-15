@@ -14,6 +14,7 @@ import { Button } from './components/button';
 import { Row } from './components/layout';
 import { AddItemsModal } from './components/add-items-modal';
 import { setDataTransfer } from './utils/set-data-transfer';
+import { onEntriesUpdate, onGroupsUpdate } from './domain/db';
 
 const Wrapper = styled.div`
   position: absolute;
@@ -23,7 +24,21 @@ const Wrapper = styled.div`
   bottom: 0;
 
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+
+  .toolbar {
+    display: flex;
+    flex-direction: column;
+    background-color: #444;
+    width: 64px;
+
+    button {
+      border: none;
+      color: white;
+      width: 64px;
+      height: 64px;
+    }
+  }
 
   .list-container {
     position: relative;
@@ -33,27 +48,31 @@ const Wrapper = styled.div`
   }
 
   .groups-wrapper {
-    flex: 1;
-    padding: 8px;
     display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-content: flex-start;
-
+    flex: 1;
+    flex-direction: column;
+    padding: 30px;
+    box-shadow: 0px 0px 80px -15px rgba(0,0,0,0.5);
+    margin-left: auto;
+    margin-right: auto;
 
     .group {
-      flex: 1;
-      min-width: 200px;
-      margin: 8px;
-      border: 1px solid #eee;
-      box-shadow: 0px 0px 40px -15px rgba(0,0,0,0.3);
+      padding: 16px;
+      &:not(:last-child) {
+        border-bottom: 1px solid #e0e0e0;
+      }
+
+      &:hover {
+        cursor: pointer;
+        background-color: #eee;
+      }
     }
   }
 
   .list-wrapper {
     flex: 1;
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     padding: 16px;
     overflow-y: auto;
 
@@ -63,31 +82,22 @@ const Wrapper = styled.div`
   }
 
   .unsorted-items {
-    background-color: #eee;
     max-width: 320px;
+
+    .input-container {
+      flex: 1;
+    }
   }
 `
 
 interface State {
   groups: PurchaseGroup[]
   items: Purchase[]
-  ungrouped: Purchase[]
-  filtered: Purchase[]
-  filter: string
 }
 
 const intialState: State = {
-  groups: [
-    new PurchaseGroup('asdf', 'asdfasdf'),
-    new PurchaseGroup('asdf2', 'asdfasdf'),
-    new PurchaseGroup('asdf3', 'asdfasdf'),
-    new PurchaseGroup('asdf5', 'asdfasdf'),
-    new PurchaseGroup('asdf6', 'asdfasdf'),
-  ],
-  items: [],
-  filter: "",
-  ungrouped: [],
-  filtered: []
+  groups: [],
+  items: []
 }
 
 interface UpdateItems {
@@ -95,116 +105,124 @@ interface UpdateItems {
   payload: Purchase[]
 }
 
-interface AddItems {
-  type: 'ADDITEMS',
+interface SetGroups {
+  type: 'SETGROUPS',
+  payload: PurchaseGroup[]
+}
+
+interface SetItems {
+  type: 'SETITEMS',
   payload: Purchase[]
 }
 
-interface AddGroup {
-  type: 'ADDGROUP',
-  payload: PurchaseGroup
-}
+type ActionType = SetItems | UpdateItems | SetGroups
 
-interface SetFilter {
-  type: 'SETFILTER',
-  payload: string
-}
-
-type ActionType = UpdateItems | AddGroup | SetFilter | AddItems
-
+type GroupedItems = Record<string | 'ungrouped', Purchase[]>
+const groupItems = (items: Purchase[]) =>
+  items.reduce((groups: GroupedItems, i) => {
+    const key = i.group || 'ungrouped'
+    groups[key] = [
+      ...(groups[key] || []),
+      i
+    ]
+    return groups
+  }, { ungrouped: [] })
 
 const itemsReducer = (state: State, action: ActionType): State => {
-  let updateState: State
   switch (action.type) {
-    case 'ADDGROUP':
+    case "SETGROUPS":
+    return {
+      ...state,
+      groups: [...action.payload]
+    }
+    case "SETITEMS":
       return {
         ...state,
-        groups: [...state.groups, action.payload]
+        items: [...action.payload]
       }
-    case 'ADDITEMS':
-      updateState = {
-        ...state,
-        items: [...state.items, ...action.payload],
-      }
-
-      updateState.ungrouped = updateState.items.filter(i => i.group === null)
-      updateState.filtered = updateState.ungrouped.filter(i => i.containsKeyword(updateState.filter))
-
-      return updateState
-    case 'SETFILTER':
+    case "UPDATEITEMS":
       return {
         ...state,
-        filter: action.payload,
-        filtered: state.ungrouped.filter(i => i.containsKeyword(action.payload))
+        items: state.items.map(i => {
+          const u = action.payload.find(e => e.id === i.id)
+          return u ? u : i
+        })
       }
-    case 'UPDATEITEMS':
-      updateState = {
-        ...state,
-      }
-      updateState.items = state.items.map(i => {
-        const u = action.payload.find(e => e.id === i.id)
-        return u ? u : i
-      })
-      updateState.ungrouped = updateState.items.filter(i => i.group === null)
-      updateState.filtered = updateState.ungrouped.filter(i => i.containsKeyword(updateState.filter))
-      return updateState
     default:
       return state
   }
 }
 
+const initialGrouped: GroupedItems = {
+  ungrouped: []
+}
+
+const initialFiltered: Purchase[] = []
 
 export const App = () => {
   const [state, dispatch] = React.useReducer(itemsReducer, intialState)
   const [addGroup, setAddGroup] = React.useState(false)
   const [addItems, setAddItems] = React.useState(false)
 
-  const createGroup = () => setAddGroup(true)
+  const [grouped, setGrouped] = React.useState(initialGrouped)
+  const [filtered, setFiltered] = React.useState(initialFiltered)
+  const [filter, setFilter] = React.useState('')
 
-  const handleGroupAdd = (g: PurchaseGroup) => {
-    dispatch({
-      type: 'ADDGROUP',
-      payload: g
+  React.useEffect(() => {
+    onEntriesUpdate(payload =>
+      dispatch({
+        type: "SETITEMS",
+        payload
+      })
+    )
+
+    onGroupsUpdate(payload => {
+      dispatch({
+        type: 'SETGROUPS',
+        payload
+      })
     })
-    setAddGroup(false)
-  }
+  }, [])
 
+  React.useEffect(() => {
+    setGrouped(groupItems(state.items))
+  }, [state.items, state.groups])
+
+  React.useEffect(() => {
+    setFiltered(grouped.ungrouped.filter(i => i.containsKeyword(filter)))
+  }, [grouped, filter])
+
+  const createGroup = () => setAddGroup(true)
   const handleGroupAddCancel = () => setAddGroup(false)
-
   const handleGroupChange = (p: Purchase[]) =>
     dispatch({
       type: 'UPDATEITEMS',
       payload: p
     })
-
-  const setFilter = (value: string) => dispatch({
-    type: 'SETFILTER',
-    payload: value
-  })
-
   const handleGroupDrag = (e: React.DragEvent<HTMLButtonElement>) =>
-    setDataTransfer(e, state.filtered)
+    setDataTransfer(e, filtered)
 
   const showAddItemsModal = () => setAddItems(true)
   const handleItemsModalClose = () => setAddItems(false)
-  const handleItemsModalAdd = (items: Purchase[]) => dispatch({
-    type: 'ADDITEMS',
-    payload: items
-  })
 
   return (
     <Wrapper>
-      <Row>
+      <div className="toolbar">
         <Button onClick={createGroup}>kkkk</Button>
         <Button onClick={showAddItemsModal}>aaaa</Button>
-      </Row>
+      </div>
       <div className="list-container">
         <div className="list-wrapper unsorted-items">
-          <div>
-            <Input value={state.filter} onChange={setFilter} />
-            <Button draggable={true} onDragStart={handleGroupDrag}>>></Button>
-            <PurhcaseList items={state.filtered} />
-          </div>
+          <Row>
+            <Input className={'input-container'} value={filter} onChange={setFilter} />
+            <Button
+              draggable={filtered.length > 0}
+              onDragStart={handleGroupDrag}
+            >
+              >>
+            </Button>
+          </Row>
+          <PurhcaseList items={filtered} />
         </div>
 
         <div className="groups-wrapper">
@@ -212,17 +230,17 @@ export const App = () => {
             <PurchaseGroupEl
               key={g.id}
               group={g}
-              items={state.items.filter(i => i.group === g.id)}
+              items={grouped[g.id] || []}
               onChange={handleGroupChange}
             />
           ))}
         </div>
       </div>
-      {addGroup && (
-        <AddGroup onAdd={handleGroupAdd} onCancel={handleGroupAddCancel} />
-      )}
+      {addGroup && <AddGroup onCancel={handleGroupAddCancel} />}
       {addItems && (
-        <AddItemsModal onClose={handleItemsModalClose} onChange={handleItemsModalAdd} />
+        <AddItemsModal
+          onClose={handleItemsModalClose}
+        />
       )}
     </Wrapper>
   )

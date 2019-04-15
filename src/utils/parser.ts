@@ -1,6 +1,6 @@
 import { some, none } from 'fp-ts/lib/Option'
-import { Entry, Purchase } from "../types/purchase"
-import { format } from 'date-fns';
+import { format } from 'date-fns'
+import { PurhcaseEntry } from 'src/types/purchase-entry';
 
 export const readFile = (files: FileList): Promise<string> =>
   new Promise((resolve, reject) => {
@@ -32,9 +32,10 @@ export const parseDate = (date: string) => {
 export const toDateString = (date: Date) =>
   format(date, 'DD.MM.YYYY')
 
+
 export const parse = (src: string) => {
   const lines = src.split('\n')
-  const models: Purchase[] = []
+  const models: PurhcaseEntry[] = []
 
   while (lines.length) {
     const line = lines.shift()
@@ -42,20 +43,14 @@ export const parse = (src: string) => {
       const t = line.trim()
       if (t.match(/^[0-9]{2}\.[0-9]{2}\.[0-9]{4}$/g)) {
         const [desc, value] = lines.splice(0, 2)
-
-        Entry.decode({
+        PurhcaseEntry.from({
           date: t,
           value: Number(`${value}`.replace(",", ".")) || 0,
           desc,
           group: null
-        }).map((e) => Purchase
-          .fromEntry(e)
-          .map((p) => {
-            models.push(p)
-          }))
+        }).map((e) => models.push(e))
       }
     }
-
   }
 
   return models

@@ -3,20 +3,21 @@ import { Modal } from './modal';
 import { Button } from './button';
 import { TextArea } from './TextArea';
 import { Column, Row, Flex } from './layout';
-import { Purchase } from 'src/types/purchase';
 import { parse } from 'src/utils/parser';
-
 
 interface Props {
   onClose: () => void
-  onChange: (items: Purchase[]) => void
 }
 
-export const AddItemsModal = ({ onChange, onClose }: Props) => {
+export const AddItemsModal = ({ onClose }: Props) => {
   const [text, setText] = React.useState('')
+  const [loading, setLoading] = React.useState(false)
 
-  const handleAdd = () => {
-    onChange(parse(text))
+  const handleAdd = async () => {
+    setLoading(true)
+    const collection = parse(text)
+    await Promise.all(collection.map(i => i.save()))
+    setLoading(false)
     setText('')
     onClose()
   }
@@ -34,7 +35,10 @@ export const AddItemsModal = ({ onChange, onClose }: Props) => {
       }
     >
       <Column>
-        <TextArea value={text} onChange={setText} />
+        {loading ? <h2>loading</h2> : (
+          <TextArea value={text} onChange={setText} />
+          )
+        }
       </Column>
     </Modal>
   )

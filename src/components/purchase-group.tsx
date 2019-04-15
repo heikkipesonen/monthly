@@ -1,17 +1,18 @@
 import * as React from 'react'
 import styled from 'styled-components';
+import classNames from 'classnames'
 
 import { Purchase } from 'src/types/purchase';
 import { PurchaseGroup } from 'src/types/purchase-group';
 import { Money } from 'src/utils/money';
 import { GroupContentsModal } from './group-contents-modal';
-import { Row, Flex } from './layout';
+import { Flex, Row } from './layout';
 import { getDataTransfer } from 'src/utils/set-data-transfer';
 
 const Container = styled.div`
-  background-color: #fefefe;
-  padding: 16px;
-  cursor: pointer;
+  &.onHover {
+    background-color: #d00;
+  }
 `
 
 interface Props {
@@ -25,6 +26,7 @@ const totalValue = (items: Purchase[]) =>
 
 export const PurchaseGroupEl = ({ group, items, onChange }: Props) => {
   const [modal, setModal] = React.useState(false)
+  const [onHover, setHover] = React.useState(false)
 
   const handleModalOpen = () => setModal(true)
   const handleModalClose = () => {
@@ -32,29 +34,42 @@ export const PurchaseGroupEl = ({ group, items, onChange }: Props) => {
   }
   const handleModalChange = () => {}
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) =>
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
+    setHover(true)
+  }
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) =>
+    setHover(false)
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
     const payload = getDataTransfer(e)
-    onChange(
-      payload.map(i => i.setGroup(group.id))
-    )
+    await Promise.all(payload.map(i => i.update({ group: group.id })))
+    setHover(false)
   }
 
   return (
-    <Container className={'group'} onDrop={handleDrop} onDragOver={handleDragOver} onClick={handleModalOpen}>
-      <h2>{group.name}</h2>
+    <Container
+      className={classNames("group", { onHover })}
+      onDrop={handleDrop}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onClick={handleModalOpen}
+    >
       <Row>
-        {items.length}
-        <Flex />
-        { totalValue(items) }
+        <Flex>
+          {group.name}
+        </Flex>
+        <strong>
+          {totalValue(items)}
+        </strong>
       </Row>
-      {modal && <GroupContentsModal
-        group={group}
-        items={items}
-        onChange={handleModalChange}
-        onClose={handleModalClose}
-      />}
+      {modal && (
+        <GroupContentsModal
+          group={group}
+          items={items}
+          onChange={handleModalChange}
+          onClose={handleModalClose}
+        />
+      )}
     </Container>
   )}

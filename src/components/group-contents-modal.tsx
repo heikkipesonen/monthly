@@ -14,6 +14,7 @@ interface Props {
 
 export const GroupContentsModal = ({ group, items, onClose }: Props) => (
   <Modal
+    size={'medium'}
     onClose={onClose}
     header={group.name}
     footer={<Button onClick={onClose}>cancel</Button>}

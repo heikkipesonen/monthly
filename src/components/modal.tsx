@@ -2,7 +2,7 @@ import * as React from 'react'
 import styled from 'styled-components';
 
 interface ContainerProps {
-  size?: 'small' | 'large'
+  size?: 'small' | 'medium'
 }
 const Container = styled.div`
   position: fixed;
@@ -10,6 +10,7 @@ const Container = styled.div`
   left: 0;
   bottom: 0;
   right: 0;
+  z-index: 1001;
 
   display: flex;
   flex-direction: row;
@@ -27,8 +28,8 @@ const Container = styled.div`
 
   .modal {
     position: relative;
-    width: ${(props: ContainerProps) => props.size === "large" ? '80vh' : '500px'};;
-    height: ${(props: ContainerProps) => props.size === "large" ? '80vh' : '600px'};
+    width: ${(props: ContainerProps) => props.size === "medium" ? '700px' : '500px'};;
+    height: ${(props: ContainerProps) => props.size === "medium" ? '800px' : '600px'};
     max-height: 90vh;
     max-width: 90vw;
 

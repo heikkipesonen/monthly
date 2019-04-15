@@ -2,14 +2,7 @@ import * as t from 'io-ts'
 import { Money } from '../utils/money'
 import { parseDate, extractKeywords, toDateString } from '../utils/parser'
 import { some, none } from 'fp-ts/lib/Option';
-import { generateId4 } from 'src/utils/id';
-
-export const Entry = t.interface({
-  desc: t.string,
-  value: t.number,
-  date: t.string,
-  group: t.union([t.string, t.null])
-})
+import { purchases } from 'src/domain/db';
 
 export const EntryString = t.interface({
   id: t.string,
@@ -19,29 +12,21 @@ export const EntryString = t.interface({
   group: t.union([t.string, t.null])
 })
 
-export type EntryType = t.TypeOf<typeof Entry>
+export type EntryStringType = t.TypeOf<typeof EntryString>
 
 export class Purchase {
   constructor(
+    public readonly id: string,
     public readonly desc: string,
     public readonly value: Money,
     public readonly date: Date,
-    public readonly id: string = generateId4(),
-    public readonly group: string | null  = null
+    public readonly group: string | null = null,
+    public readonly kind = 'purchase'
   ) { }
 
   public containsKeyword = (word: string) => this.desc.toLowerCase().includes(word.toLowerCase())
 
-  public matchOne = (keywords: string[]) =>
-    keywords.some(this.containsKeyword)
-
-  public matchAll = (keywords: string[]) =>
-    keywords.every(this.containsKeyword)
-
   public keywords = () => extractKeywords(this.desc)
-
-  public isBetween = (start: Date, end: Date) =>
-    this.date.valueOf() <= end.valueOf() && this.date.valueOf() >= start.valueOf()
 
   public rowData = () => ({
     desc: this.desc,
@@ -57,26 +42,22 @@ export class Purchase {
 
   public toString = () => JSON.stringify(this.data())
 
-  public setGroup = (group: string | null) =>
-    new Purchase(
-      this.desc,
-      this.value,
-      this.date,
-      this.id,
-      group
-    )
+  public update = async (data: Partial<EntryStringType>) => {
+    await purchases.doc(this.id).update({
+      ...this.data(),
+      ...data
+    })
 
-  public isEqual = (p: Purchase) =>
-    JSON.stringify(this.rowData()) === JSON.stringify(p.rowData())
+    return Purchase.fromModel({
+      ...this.data(),
+      ...data
+    })
+  }
 
-  public static fromEntry = (item: EntryType) => {
-    const date = parseDate(item.date).toNullable()
-    const value = Money.from(item.value).toNullable()
-    if (date && value) {
-      return some(new Purchase(item.desc, value, date))
-    }
-
-    return none
+  public isEqual = (p: Purchase) => {
+    const a = this.rowData()
+    const b = p.rowData()
+    return a.desc === b.desc && a.value === b.value && a.date === b.date
   }
 
   public static fromModel= (s: object) =>
@@ -85,7 +66,7 @@ export class Purchase {
         const date = parseDate(v.date).toNullable()
         const value = Money.from(v.value).toNullable()
         if (date && value) {
-          return some(new Purchase(v.desc, value, date, v.id, v.group))
+          return some(new Purchase(v.id, v.desc, value, date, v.group))
         }
 
         return none
@@ -94,5 +75,6 @@ export class Purchase {
         console.log(s)
         throw new Error('e')
       })
+
 }
 
