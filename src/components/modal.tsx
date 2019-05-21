@@ -27,11 +27,14 @@ const Container = styled.div`
   }
 
   .modal {
-    position: relative;
-    width: ${(props: ContainerProps) => props.size === "medium" ? '700px' : '500px'};;
-    height: ${(props: ContainerProps) => props.size === "medium" ? '800px' : '600px'};
-    max-height: 90vh;
-    max-width: 90vw;
+    position: absolute;
+    left: auto;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: ${(props: ContainerProps) => props.size === "medium" ? '60vw' : '40vw'};
+    height: 100vh;
+    min-width: 500px;
 
     background-color: rgba(255, 255, 255, 1);
     box-shadow: 0px 0px 120px -30px rgba(0, 0, 0, 0.8);
@@ -66,8 +69,8 @@ const Container = styled.div`
 
 interface Props extends ContainerProps {
   children: React.ReactNode
-  header: React.ReactNode
-  footer: React.ReactNode
+  header?: React.ReactNode
+  footer?: React.ReactNode
   onClose: () => void
 }
 
@@ -82,9 +85,9 @@ export const Modal = ({ children, header, footer, size, onClose }: Props) => {
   <Container size={size}>
     <div className="backdrop" onClick={handleClose}/>
     <div className="modal" onClick={handleClick}>
-      <div className="modal-header">
+      {header && <div className="modal-header">
         { header }
-      </div>
+      </div>}
 
       <div className="modal-content">
         <div className="modal-content-inner">
@@ -92,9 +95,9 @@ export const Modal = ({ children, header, footer, size, onClose }: Props) => {
         </div>
       </div>
 
-      <div className="modal-footer">
+      {footer && <div className="modal-footer">
         { footer }
-      </div>
+      </div>}
     </div>
   </Container>
 )

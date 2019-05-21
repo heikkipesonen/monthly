@@ -1,20 +1,12 @@
 import * as React from 'react';
+import './index.css'
 
 import styled from 'styled-components'
-import { Purchase } from './types/purchase';
-
-import './index.css'
-import { PurhcaseList } from './components/purchase-list';
-import { PurchaseGroup } from './types/purchase-group';
-import { PurchaseGroupEl } from './components/purchase-group';
-
-import { AddGroup } from './components/add-group-modal';
-import { Input } from './components/input';
 import { Button } from './components/button';
-import { Row } from './components/layout';
+import { MonthpickerField } from './components/date-picker';
+import { Textalign } from './components/layout';
 import { AddItemsModal } from './components/add-items-modal';
-import { setDataTransfer } from './utils/set-data-transfer';
-import { onEntriesUpdate, onGroupsUpdate } from './domain/db';
+import { DraftPurchase } from './api/dto/purchase-entry';
 
 const Wrapper = styled.div`
   position: absolute;
@@ -25,223 +17,44 @@ const Wrapper = styled.div`
 
   display: flex;
   flex-direction: row;
+  justify-content: center;
+  align-items: center;
 
-  .toolbar {
-    display: flex;
-    flex-direction: column;
-    background-color: #444;
-    width: 64px;
-
-    button {
-      border: none;
-      color: white;
-      width: 64px;
-      height: 64px;
-    }
-  }
-
-  .list-container {
-    position: relative;
-    display: flex;
-    flex-direction: row;
-    flex: 1;
-  }
-
-  .groups-wrapper {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    padding: 30px;
-    box-shadow: 0px 0px 80px -15px rgba(0,0,0,0.5);
-    margin-left: auto;
-    margin-right: auto;
-
-    .group {
-      padding: 16px;
-      &:not(:last-child) {
-        border-bottom: 1px solid #e0e0e0;
-      }
-
-      &:hover {
-        cursor: pointer;
-        background-color: #eee;
-      }
-    }
-  }
-
-  .list-wrapper {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    padding: 16px;
-    overflow-y: auto;
-
-    &:not(:first-child) {
-      border-left: 1px solid #eee;
-    }
-  }
-
-  .unsorted-items {
-    max-width: 320px;
-
-    .input-container {
-      flex: 1;
-    }
-  }
+  background-image: linear-gradient(120deg, #fdfbfb 0%, #ebedee 100%);
 `
 
-interface State {
-  groups: PurchaseGroup[]
-  items: Purchase[]
-}
+const AppMenu = styled.div`
+  position: absolute;
+  bottom: 0; right: 0;
+  padding: 16px;
+  background-color: #000;
+  color: white;
+`
 
-const intialState: State = {
-  groups: [],
-  items: []
-}
-
-interface UpdateItems {
-  type: 'UPDATEITEMS',
-  payload: Purchase[]
-}
-
-interface SetGroups {
-  type: 'SETGROUPS',
-  payload: PurchaseGroup[]
-}
-
-interface SetItems {
-  type: 'SETITEMS',
-  payload: Purchase[]
-}
-
-type ActionType = SetItems | UpdateItems | SetGroups
-
-type GroupedItems = Record<string | 'ungrouped', Purchase[]>
-const groupItems = (items: Purchase[]) =>
-  items.reduce((groups: GroupedItems, i) => {
-    const key = i.group || 'ungrouped'
-    groups[key] = [
-      ...(groups[key] || []),
-      i
-    ]
-    return groups
-  }, { ungrouped: [] })
-
-const itemsReducer = (state: State, action: ActionType): State => {
-  switch (action.type) {
-    case "SETGROUPS":
-    return {
-      ...state,
-      groups: [...action.payload]
-    }
-    case "SETITEMS":
-      return {
-        ...state,
-        items: [...action.payload]
-      }
-    case "UPDATEITEMS":
-      return {
-        ...state,
-        items: state.items.map(i => {
-          const u = action.payload.find(e => e.id === i.id)
-          return u ? u : i
-        })
-      }
-    default:
-      return state
-  }
-}
-
-const initialGrouped: GroupedItems = {
-  ungrouped: []
-}
-
-const initialFiltered: Purchase[] = []
-
+const v = new Date()
 export const App = () => {
-  const [state, dispatch] = React.useReducer(itemsReducer, intialState)
-  const [addGroup, setAddGroup] = React.useState(false)
-  const [addItems, setAddItems] = React.useState(false)
+  const [showAddItems, setShowAddItems] = React.useState<boolean>(false)
 
-  const [grouped, setGrouped] = React.useState(initialGrouped)
-  const [filtered, setFiltered] = React.useState(initialFiltered)
-  const [filter, setFilter] = React.useState('')
-
-  React.useEffect(() => {
-    onEntriesUpdate(payload =>
-      dispatch({
-        type: "SETITEMS",
-        payload
-      })
-    )
-
-    onGroupsUpdate(payload => {
-      dispatch({
-        type: 'SETGROUPS',
-        payload
-      })
-    })
-  }, [])
-
-  React.useEffect(() => {
-    setGrouped(groupItems(state.items))
-  }, [state.items, state.groups])
-
-  React.useEffect(() => {
-    setFiltered(grouped.ungrouped.filter(i => i.containsKeyword(filter)))
-  }, [grouped, filter])
-
-  const createGroup = () => setAddGroup(true)
-  const handleGroupAddCancel = () => setAddGroup(false)
-  const handleGroupChange = (p: Purchase[]) =>
-    dispatch({
-      type: 'UPDATEITEMS',
-      payload: p
-    })
-  const handleGroupDrag = (e: React.DragEvent<HTMLButtonElement>) =>
-    setDataTransfer(e, filtered)
-
-  const showAddItemsModal = () => setAddItems(true)
-  const handleItemsModalClose = () => setAddItems(false)
+  const setAddItems = (v: boolean) => () => setShowAddItems(v)
+  const handleItemsSubmit = (v: DraftPurchase[]) => {
+    console.log(v)
+  }
 
   return (
     <Wrapper>
-      <div className="toolbar">
-        <Button onClick={createGroup}>kkkk</Button>
-        <Button onClick={showAddItemsModal}>aaaa</Button>
-      </div>
-      <div className="list-container">
-        <div className="list-wrapper unsorted-items">
-          <Row>
-            <Input className={'input-container'} value={filter} onChange={setFilter} />
-            <Button
-              draggable={filtered.length > 0}
-              onDragStart={handleGroupDrag}
-            >
-              >>
-            </Button>
-          </Row>
-          <PurhcaseList items={filtered} />
-        </div>
+      <Textalign align="center">
+        <MonthpickerField value={v} onChange={console.log} />
+      </Textalign>
+      <AppMenu>
+        <Button onClick={setAddItems(true)}>
+          add items
+        </Button>
+        <Button>
+          add groups
+        </Button>
+      </AppMenu>
 
-        <div className="groups-wrapper">
-          {state.groups.map(g => (
-            <PurchaseGroupEl
-              key={g.id}
-              group={g}
-              items={grouped[g.id] || []}
-              onChange={handleGroupChange}
-            />
-          ))}
-        </div>
-      </div>
-      {addGroup && <AddGroup onCancel={handleGroupAddCancel} />}
-      {addItems && (
-        <AddItemsModal
-          onClose={handleItemsModalClose}
-        />
-      )}
+      {showAddItems && <AddItemsModal onSubmit={handleItemsSubmit} onCancel={setAddItems(false)} />}
     </Wrapper>
   )
 }

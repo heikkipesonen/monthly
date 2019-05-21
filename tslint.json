@@ -12,7 +12,8 @@
       true,
       "never-prefix"
     ],
-    "member-ordering": false
+    "member-ordering": false,
+    "max-classes-per-file": false
   },
   "jsRules": {
     "object-literal-sort-keys": false

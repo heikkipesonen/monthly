@@ -1,6 +1,6 @@
 import { some, none } from 'fp-ts/lib/Option'
 import { format } from 'date-fns'
-import { PurhcaseEntry } from 'src/types/purchase-entry';
+import { DraftPurchase } from 'src/api/dto/purchase-entry';
 
 export const readFile = (files: FileList): Promise<string> =>
   new Promise((resolve, reject) => {
@@ -14,15 +14,15 @@ export const readFile = (files: FileList): Promise<string> =>
     r.readAsText(file)
   })
 
+const dateFormat = /^[0-9]{2}\.[0-9]{2}\.[0-9]{4}$/g
 
 export const parseDate = (date: string) => {
-  if (date.match(/^[0-9]{2}\.[0-9]{2}\.[0-9]{4}$/g)) {
+  if (date.match(dateFormat)) {
     const [day, month, year] = date.split('.')
     const dt = new Date(0)
     dt.setDate(Number(day))
     dt.setMonth(Number(month) - 1)
     dt.setFullYear(Number(year))
-
     return some(dt)
   }
 
@@ -32,23 +32,23 @@ export const parseDate = (date: string) => {
 export const toDateString = (date: Date) =>
   format(date, 'DD.MM.YYYY')
 
-
 export const parse = (src: string) => {
   const lines = src.split('\n')
-  const models: PurhcaseEntry[] = []
+  const models: DraftPurchase[] = []
 
   while (lines.length) {
     const line = lines.shift()
     if (line) {
       const t = line.trim()
-      if (t.match(/^[0-9]{2}\.[0-9]{2}\.[0-9]{4}$/g)) {
+      if (t.match(dateFormat)) {
         const [desc, value] = lines.splice(0, 2)
-        PurhcaseEntry.from({
+
+        DraftPurchase.decode({
           date: t,
           value: Number(`${value}`.replace(",", ".")) || 0,
           desc,
-          group: null
-        }).map((e) => models.push(e))
+          type: 'DRAFT'
+        }).map(p => models.push(p))
       }
     }
   }

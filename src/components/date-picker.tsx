@@ -1,89 +1,77 @@
-import * as React from 'react'
+import *  as React from 'react'
+import { Modal } from './modal';
+import { startOfMonth, format } from 'date-fns';
+import { Input } from './input';
 import styled from 'styled-components';
-import { startOfMonth, addDays } from 'date-fns'
-
-const weekDays = [1, 2, 3, 4, 5, 6, 0]
-const dayOfWeek = (d: Date) => weekDays.indexOf(d.getDay())
-
-type DateCell = Date | false
-type Calendar = Array<DateCell[]>
-
-const getWeek = (): DateCell[] => Array(7).fill(false)
-
-const getMonth = (d: Date): Calendar => {
-  let m = startOfMonth(d)
-  const model: Calendar = [
-    getWeek()
-  ]
-
-  while (m.getMonth() === d.getMonth()) {
-    const i = model.length - 1
-    const wd = dayOfWeek(m)
-
-    model[i][wd] = new Date(m.valueOf())
-
-    if (wd === 6) {
-      model.push(getWeek())
-    }
-
-    m = addDays(m, 1)
-  }
-
-  return model
-}
 
 
-const Container = styled.div`
-  padding: 16px;
-  background-color: white;
-  table {
-    border-spacing: 0;
-    width: 100%;
-  }
-
-  td {
-    text-align: center;
-    padding: 8px;
-    width: 42px;
-    height: 42px;
-  }
+const MonthsWrapper = styled.div`
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  width: 256px;
 `
 
-interface MonthProps {
-  value: number
-}
-const Month = ({ value }: MonthProps) => {
-  const d = new Date()
-  d.setMonth(value)
+const MonthWrapper = styled.div`
+  display: flex;
+  width: 64px;
+  height: 64px;
+  justify-content: center;
+  align-items: center;
+  font-size: 20px;
+  font-weight: bold;
+`
 
-  const calendar = getMonth(d)
-  return (
-  <tbody>
-    {calendar.map((w, i) => (
-      <tr key={i}>
-        {w.map((d, id) => (
-          <td key={id}>
-            {d && d.getDate()}
-          </td>
-        ))}
-      </tr>
-    ))}
-  </tbody>
-
-)
-}
-
+type Value = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12
 interface Props {
-  value: Date
-  onChange: (d: DateCell) => void
+  onChange: (d: Value) => void
+  onClose: () => void
 }
-export const DatePicker = ({ value }: Props) => {
+
+const months: Value[] = Array(12).fill(false).map((_, i) => i as Value)
+
+export const Monthpicker = ({ onChange, onClose }: Props) => {
+  const handleSubmit = (v: Value) => () => onChange(v)
+
   return (
-    <Container className="date-picker">
-      <table>
-        <Month value={value.getMonth()} />
-      </table>
-    </Container>
+    <Modal
+      header={'kikke'}
+      onClose={onClose}>
+
+      <MonthsWrapper>
+        {months.map(m => (
+          <MonthWrapper key={m} onClick={handleSubmit(m)}>
+            {m + 1}
+          </MonthWrapper>
+        ))}
+      </MonthsWrapper>
+    </Modal>
   )
 }
 
+interface FieldProps {
+  value: Date
+  onChange: (d: Date) => void
+}
+export const MonthpickerField = ({ value, onChange }: FieldProps) => {
+  const [focused, setFocused] = React.useState<boolean>(false)
+  const handleFocusChange = (v: boolean) => () => setFocused(v)
+  const handleChange = (v: Value) => {
+    const d = new Date(value.valueOf())
+    d.setMonth(v)
+    onChange(startOfMonth(d))
+  }
+
+  return (
+    <>
+      <Input
+        onFocus={handleFocusChange(true)}
+        onChange={handleFocusChange(false)}
+        value={format(value, 'MM.YYYY')}
+        />
+      {focused ? (
+        <Monthpicker onChange={handleChange} onClose={handleFocusChange(false)} />
+      ) : null}
+    </>
+  )
+}

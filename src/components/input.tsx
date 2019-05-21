@@ -6,7 +6,8 @@ interface Props {
   value: string,
   type?: 'text' | 'email' | 'password',
   className?: string
-
+  onFocus?: () => void
+  onBlur?: () => void
   placeholder?: string
 }
 
@@ -19,10 +20,14 @@ const InputElement = ({
   value,
   type = "text",
   className,
+  onFocus,
+  onBlur,
   placeholder
 }: Props) => (
   <div className={className}>
     <input
+      onFocus={onFocus}
+      onBlur={onBlur}
       type={type}
       placeholder={placeholder}
       onChange={onChangeListener(onChange)}
@@ -36,6 +41,7 @@ export const Input = styled(InputElement)`
   display: flex;
   flex-direction: column;
   padding: 16px 0;
+  text-align: inherit;
 
   input {
     outline: none;
@@ -43,9 +49,10 @@ export const Input = styled(InputElement)`
     border-radius: 0;
     background-color: transparent;
     width: auto;
-    border-bottom: 1px solid #d00;
-    font-size: 1rem;
+    border-bottom: 2px solid #000;
+    font-size: 1.5rem;
     font-weight: 200;
+    text-align: inherit;
 
     ::-webkit-input-placeholder {
       color: #777;

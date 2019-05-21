@@ -1,45 +1,34 @@
 import * as React from 'react'
-import { Modal } from './modal';
-import { Button } from './button';
 import { TextArea } from './TextArea';
 import { Column, Row, Flex } from './layout';
 import { parse } from 'src/utils/parser';
+import { Button } from './button';
+import { DraftPurchase } from 'src/api/dto/purchase-entry';
+import { View } from './view';
 
 interface Props {
-  onClose: () => void
+  onSubmit: (list: DraftPurchase[]) => void
+  onCancel: () => void
 }
 
-export const AddItemsModal = ({ onClose }: Props) => {
-  const [text, setText] = React.useState('')
-  const [loading, setLoading] = React.useState(false)
+export const AddItemsModal = ({ onSubmit, onCancel }: Props) => {
+  const [text, setText] = React.useState<string>('')
+  const handleSubmit = () => onSubmit(parse(text))
 
-  const handleAdd = async () => {
-    setLoading(true)
-    const collection = parse(text)
-    await Promise.all(collection.map(i => i.save()))
-    setLoading(false)
-    setText('')
-    onClose()
-  }
 
   return (
-    <Modal
-      onClose={onClose}
-      header="add items"
-      footer={
+    <View>
         <Row>
-          <Button onClick={onClose}>kikkeli</Button>
+          <Button onClick={onCancel}>
+            cancel
+          </Button>
           <Flex />
-          <Button onClick={handleAdd}>kikkeli</Button>
+          <Button onClick={handleSubmit}>
+            add
+          </Button>
         </Row>
-      }
-    >
       <Column>
-        {loading ? <h2>loading</h2> : (
-          <TextArea value={text} onChange={setText} />
-          )
-        }
+        <TextArea label={'text'} onChange={setText} value={text} />
       </Column>
-    </Modal>
-  )
-}
+    </View>
+)}

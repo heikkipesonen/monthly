@@ -5,8 +5,8 @@ export class Money {
     private readonly value: number
   ) {}
 
-  public toString() {
-    return this.value / 100
+  public valueOf() {
+    return this.value/100
   }
 
   public displayValue() {

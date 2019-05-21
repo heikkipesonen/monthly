@@ -2,9 +2,10 @@ import * as React from 'react'
 import styled from "styled-components"
 
 interface Props {
-  onChange: (value: string) => void,
-  value: string,
-  type?: 'text' | 'email' | 'password',
+  onChange: (value: string) => void
+  value: string
+  label?: string
+  type?: 'text' | 'email' | 'password'
   className?: string
 
   placeholder?: string
@@ -18,22 +19,35 @@ const InputElement = ({
   onChange,
   value,
   className,
-  placeholder
+  placeholder,
+  label
 }: Props) => (
     <div className={className}>
-      <textarea
-        placeholder={placeholder}
-        onChange={onChangeListener(onChange)}
-        value={value}
-      />
+      <label>
+        {label && <span className={'label'}>{label}</span>}
+        <textarea
+          placeholder={placeholder}
+          onChange={onChangeListener(onChange)}
+          value={value}
+        />
+      </label>
     </div>
   )
 
 export const TextArea = styled(InputElement)`
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  padding: 16px 0;
+  width: 100%;
+
+  label {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 16px 0;
+  }
+
+  .label {
+    font-weight: bold;
+    margin-bottom: 8px;
+  }
 
   textarea {
     height: 220px;
